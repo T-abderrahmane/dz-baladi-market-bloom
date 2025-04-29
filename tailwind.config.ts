@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+                // Baladi Market custom colors
+                baladi: {
+                    terracotta: '#C75D36',
+                    olive: '#61764B',
+                    sand: '#E8DCCA',
+                    navy: '#283A4E',
+                    gold: '#D4B863',
+                    cream: '#F5F0E6'
+                }
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,12 +94,20 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'float': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'float': 'float 3s ease-in-out infinite'
+			},
+            backgroundImage: {
+                'pattern': "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMzAgNWMtMTMuODA3IDAtMjUgMTEuMTkzLTI1IDI1czExLjE5MyAyNSAyNSAyNSAyNS0xMS4xOTMgMjUtMjVTNDMuODA3IDUgMzAgNXptMCA0NWMtMTEuMDQ2IDAtMjAtOC45NTQtMjAtMjBzOC45NTQtMjAgMjAtMjAgMjAgOC45NTQgMjAgMjAtOC45NTQgMjAtMjAgMjB6IiBvcGFjaXR5PSIuMyIvPjwvc3ZnPg==')"
+            }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
