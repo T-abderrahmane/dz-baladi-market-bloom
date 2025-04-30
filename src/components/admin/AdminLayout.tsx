@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, ShoppingBag, Package, BarChart, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
   {
@@ -32,12 +32,17 @@ const AdminLayout = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const handleLogout = () => {
-    // In a real app, implement actual logout logic
-    navigate("/");
+    localStorage.removeItem("adminAuthenticated");
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+    navigate("/admin/signin");
   };
 
   return (
