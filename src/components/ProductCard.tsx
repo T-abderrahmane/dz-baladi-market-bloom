@@ -2,6 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCart } from "@/hooks/useCart";
+import { toast } from "@/components/ui/use-toast";
 
 interface ProductCardProps {
   id: string;
@@ -13,6 +15,24 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ id, name, price, image, category, discount }: ProductCardProps) => {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart({
+      id,
+      name,
+      price: parseFloat(price.replace(/[^0-9.-]+/g, "")),
+      image,
+      quantity: 1
+    });
+    
+    toast({
+      title: "Added to cart",
+      description: `${name} has been added to your cart.`,
+      duration: 2000,
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
       {/* Product Image */}
@@ -41,7 +61,11 @@ const ProductCard = ({ id, name, price, image, category, discount }: ProductCard
         </Link>
         <div className="flex items-center justify-between mt-3">
           <p className="text-baladi-terracotta font-bold">{price}</p>
-          <Button size="sm" className="bg-baladi-olive hover:bg-baladi-olive/90 text-white">
+          <Button 
+            size="sm" 
+            className="bg-baladi-olive hover:bg-baladi-olive/90 text-white"
+            onClick={handleAddToCart}
+          >
             <ShoppingCart className="h-4 w-4 mr-1" />
             Add
           </Button>
