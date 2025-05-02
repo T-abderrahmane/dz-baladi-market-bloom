@@ -1,164 +1,248 @@
 
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { algeriaWilayas, getCommunesByWilaya } from "@/data/algeria-regions";
+import { useEffect, useState } from "react";
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/components/ui/use-toast";
+import { customerModel, orderModel } from "@/models/databaseModel";
+import { OrderStatus } from "@/schema/database";
 
-// Mock data for Algerian wilayas (provinces)
-const wilayas = [
-  { id: "1", name: "Adrar" },
-  { id: "2", name: "Chlef" },
-  { id: "3", name: "Laghouat" },
-  { id: "4", name: "Oum El Bouaghi" },
-  { id: "5", name: "Batna" },
-  { id: "6", name: "Béjaïa" },
-  { id: "7", name: "Biskra" },
-  // Add more wilayas as needed
-];
-
-// Mock data for communes by wilaya
-const communesByWilaya = {
-  "1": [{ id: "101", name: "Adrar" }, { id: "102", name: "Reggane" }],
-  "2": [{ id: "201", name: "Chlef" }, { id: "202", name: "Ténès" }],
-  "3": [{ id: "301", name: "Laghouat" }, { id: "302", name: "Aflou" }],
-  "4": [{ id: "401", name: "Oum El Bouaghi" }, { id: "402", name: "Aïn Beïda" }],
-  "5": [{ id: "501", name: "Batna" }, { id: "502", name: "Barika" }],
-  "6": [{ id: "601", name: "Béjaïa" }, { id: "602", name: "Akbou" }],
-  "7": [{ id: "701", name: "Biskra" }, { id: "702", name: "Ouled Djellal" }],
-  // Add more communes by wilaya as needed
-};
+const FormSchema = z.object({
+  fullName: z.string().min(3, "Name is required"),
+  phoneNumber: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number can't exceed 15 digits"),
+  wilaya: z.string().min(1, "Province is required"),
+  commune: z.string().min(1, "City is required"),
+  address: z.string().min(5, "Address is required"),
+  deliveryMethod: z.string().min(1, "Delivery method is required"),
+});
 
 interface DeliveryFormProps {
-  name: string;
-  setName: (value: string) => void;
-  phone: string;
-  setPhone: (value: string) => void;
-  selectedWilaya: string;
-  setSelectedWilaya: (value: string) => void;
-  selectedCommune: string;
-  setSelectedCommune: (value: string) => void;
-  address: string;
-  setAddress: (value: string) => void;
-  deliveryMethod: string;
-  setDeliveryMethod: (value: string) => void;
+  productId: string;
+  quantity: number;
+  price: number;
+  setStep: (step: number) => void;
+  orderComplete: () => void;
 }
 
-const DeliveryForm = ({
-  name,
-  setName,
-  phone,
-  setPhone,
-  selectedWilaya,
-  setSelectedWilaya,
-  selectedCommune,
-  setSelectedCommune,
-  address,
-  setAddress,
-  deliveryMethod,
-  setDeliveryMethod
-}: DeliveryFormProps) => {
-  // Get available communes based on selected wilaya
-  const availableCommunes = selectedWilaya 
-    ? communesByWilaya[selectedWilaya as keyof typeof communesByWilaya] || [] 
-    : [];
+const DeliveryForm = ({ productId, quantity, price, setStep, orderComplete }: DeliveryFormProps) => {
+  const [communes, setCommunes] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { clearCart } = useCart();
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      fullName: "",
+      phoneNumber: "",
+      wilaya: "",
+      commune: "",
+      address: "",
+      deliveryMethod: "home",
+    },
+  });
+
+  // Update communes when wilaya changes
+  const selectedWilaya = form.watch("wilaya");
+  useEffect(() => {
+    if (selectedWilaya) {
+      setCommunes(getCommunesByWilaya(selectedWilaya));
+      form.setValue("commune", "");
+    }
+  }, [selectedWilaya, form]);
+
+  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+    setIsSubmitting(true);
+    
+    try {
+      // First create or get customer
+      const customer = await customerModel.create({
+        name: data.fullName,
+        phoneNumber: data.phoneNumber,
+        wilaya: data.wilaya,
+        commune: data.commune,
+        address: data.address
+      });
+      
+      // Create order
+      const order = await orderModel.create({
+        productId,
+        date: new Date(),
+        status: OrderStatus.PENDING,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerPhone: customer.phoneNumber,
+        wilaya: customer.wilaya,
+        commune: customer.commune,
+        address: customer.address,
+        quantity,
+        price,
+        notes: `Delivery Method: ${data.deliveryMethod === 'home' ? 'Home Delivery' : 'Post Office'}` 
+      });
+      
+      if (order) {
+        // Success - clear cart and complete order
+        toast({
+          title: "Order Submitted",
+          description: "Your order has been placed successfully!",
+        });
+        clearCart();
+        orderComplete();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Order Failed",
+          description: "There was a problem with your order. The product might be out of stock.",
+        });
+        setStep(1); // Go back to the ordering step
+      }
+    } catch (error) {
+      console.error("Order submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Order Failed",
+        description: "There was a problem with your order. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-baladi-navy">Delivery Information:</h3>
-      
-      <div>
-        <Label htmlFor="name">Full Name</Label>
-        <Input 
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your full name"
-          required
-        />
-      </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="fullName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your full name" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your phone number" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-      <div>
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input 
-          id="phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="e.g., 0771234567"
-          pattern="^(0)(5|6|7)[0-9]{8}$"
-          title="Please enter a valid Algerian mobile number"
-          required
-        />
-      </div>
+          <FormField
+            control={form.control}
+            name="wilaya"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Province (Wilaya)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your province" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {algeriaWilayas.map((wilaya) => (
+                      <SelectItem key={wilaya} value={wilaya}>
+                        {wilaya}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
 
-      <div>
-        <Label htmlFor="wilaya">Wilaya (Province)</Label>
-        <Select
-          value={selectedWilaya}
-          onValueChange={(value) => {
-            setSelectedWilaya(value);
-            setSelectedCommune("");
-          }}
-        >
-          <SelectTrigger id="wilaya">
-            <SelectValue placeholder="Select your wilaya" />
-          </SelectTrigger>
-          <SelectContent>
-            {wilayas.map(wilaya => (
-              <SelectItem key={wilaya.id} value={wilaya.id}>{wilaya.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <FormField
+            control={form.control}
+            name="commune"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City (Commune)</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={!selectedWilaya}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your city" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {communes.map((commune) => (
+                      <SelectItem key={commune} value={commune}>
+                        {commune}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
 
-      <div>
-        <Label htmlFor="commune">Commune (Municipality)</Label>
-        <Select
-          value={selectedCommune}
-          onValueChange={setSelectedCommune}
-          disabled={!selectedWilaya}
-        >
-          <SelectTrigger id="commune">
-            <SelectValue placeholder="Select your commune" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCommunes.map(commune => (
-              <SelectItem key={commune.id} value={commune.id}>{commune.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your detailed address" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-      <div>
-        <Label htmlFor="address">Detailed Address</Label>
-        <Input 
-          id="address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="House/Building number, Street name, Landmark"
-          required
-        />
-      </div>
+          <FormField
+            control={form.control}
+            name="deliveryMethod"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Delivery Method</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select delivery method" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="home">Home Delivery</SelectItem>
+                    <SelectItem value="post">Post Office Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+        </div>
 
-      <div>
-        <h4 className="font-medium mb-2">Delivery Method</h4>
-        <RadioGroup value={deliveryMethod} onValueChange={setDeliveryMethod} className="space-y-2">
-          <div className="flex items-center">
-            <RadioGroupItem value="home" id="home-delivery" className="text-baladi-olive" />
-            <Label htmlFor="home-delivery" className="ml-2">
-              <div className="font-medium">Home Delivery</div>
-              <div className="text-sm text-baladi-navy/70">600 DZD</div>
-            </Label>
-          </div>
-          <div className="flex items-center">
-            <RadioGroupItem value="post" id="post-delivery" className="text-baladi-olive" />
-            <Label htmlFor="post-delivery" className="ml-2">
-              <div className="font-medium">Delivery to Post Office</div>
-              <div className="text-sm text-baladi-navy/70">400 DZD</div>
-            </Label>
-          </div>
-        </RadioGroup>
-      </div>
-    </div>
+        <div className="flex justify-between">
+          <Button type="button" variant="outline" onClick={() => setStep(1)}>
+            Back
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Place Order"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 
