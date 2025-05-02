@@ -2,23 +2,26 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import ProductCard from "./ProductCard";
+import { Link } from "react-router-dom";
 
 const ProductCategories = () => {
   const featuredCategories = [
-    { name: "Spices & Herbs", icon: "🌶️", description: "Authentic Algerian flavors for your kitchen" },
-    { name: "Dates & Fruits", icon: "🌴", description: "Premium quality dates from Algerian oases" },
-    { name: "Ceramics", icon: "🏺", description: "Traditional handcrafted pottery and ceramics" },
-    { name: "Textiles", icon: "🧵", description: "Handwoven carpets, blankets and fabrics" },
+    { id: "spices", name: "Spices & Herbs", icon: "🌶️", description: "Authentic Algerian flavors for your kitchen" },
+    { id: "dates", name: "Dates & Fruits", icon: "🌴", description: "Premium quality dates from Algerian oases" },
+    { id: "ceramics", name: "Ceramics", icon: "🏺", description: "Traditional handcrafted pottery and ceramics" },
+    { id: "textiles", name: "Textiles", icon: "🧵", description: "Handwoven carpets, blankets and fabrics" },
   ];
 
   const featuredProducts = [
     {
+      id: "5",
       name: "Premium Deglet Noor Dates",
       price: "1200 DA",
       image: "https://images.unsplash.com/photo-1581165417938-3425e9b00491",
       category: "Dates"
     },
     {
+      id: "8",
       name: "Handcrafted Berber Pottery Bowl",
       price: "3500 DA",
       image: "https://images.unsplash.com/photo-1610701596007-11502861dcfa",
@@ -26,12 +29,14 @@ const ProductCategories = () => {
       discount: "15%"
     },
     {
+      id: "1",
       name: "Ras El Hanout Spice Blend",
       price: "850 DA",
       image: "https://images.unsplash.com/photo-1532336414038-cf19250c5757",
       category: "Spices"
     },
     {
+      id: "13",
       name: "Traditional Kabylie Olive Oil",
       price: "1800 DA",
       image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5",
@@ -56,7 +61,8 @@ const ProductCategories = () => {
         {/* Categories */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
           {featuredCategories.map((category, index) => (
-            <div 
+            <Link 
+              to={`/category/${category.id}`}
               key={index} 
               className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 text-center"
             >
@@ -67,7 +73,7 @@ const ProductCategories = () => {
                 View All
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
-            </div>
+            </Link>
           ))}
         </div>
         
