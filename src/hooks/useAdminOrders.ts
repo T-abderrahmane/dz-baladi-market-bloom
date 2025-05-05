@@ -66,10 +66,10 @@ export const useAdminOrders = () => {
     // Search filter
     const matchesSearch = 
       order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.wilaya?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.products && (order.products as any).name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.wilaya?.toLowerCase().includes(searchTerm.toLowerCase());
+      // Since 'products' property doesn't exist on Order type, we'll remove that check
 
     // Status filter
     const matchesStatus = statusFilter === "All" || order.status === statusFilter;

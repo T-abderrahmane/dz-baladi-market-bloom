@@ -138,3 +138,20 @@ export const communesByWilaya: { [key: string]: { id: string; name: string }[] }
     { id: "3105", name: "Ain Turk" }
   ]
 };
+
+// Export a simple array of wilaya names to match what's being imported
+export const algeriaWilayas = wilayas.map(wilaya => wilaya.name);
+
+// Create a helper function to get communes by wilaya name
+export const getCommunesByWilaya = (wilayaName: string): string[] => {
+  // Find the wilaya ID from the name
+  const wilaya = wilayas.find(w => w.name === wilayaName);
+  if (!wilaya) return [];
+  
+  // Get communes for this wilaya ID
+  const communes = communesByWilaya[wilaya.id];
+  if (!communes) return [];
+  
+  // Return just the commune names
+  return communes.map(commune => commune.name);
+};

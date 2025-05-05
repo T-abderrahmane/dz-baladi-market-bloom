@@ -10,9 +10,23 @@ import { supabase } from '@/integrations/supabase/client';
 export const productModel = {
   // Create a new product
   create: async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
+    // Map from our schema to Supabase table format
+    const supabaseProductData = {
+      name: productData.name,
+      price: productData.price,
+      old_price: productData.oldPrice,
+      category_id: productData.categoryId,
+      stock: productData.stock || 0,
+      short_description: productData.shortDescription,
+      long_description: productData.longDescription,
+      images: productData.images,
+      colors: productData.colors,
+      sizes: productData.sizes,
+    };
+    
     const { data, error } = await supabase
       .from('products')
-      .insert(productData)
+      .insert(supabaseProductData)
       .select()
       .single();
     
@@ -21,14 +35,29 @@ export const productModel = {
       throw error;
     }
     
-    return data;
+    // Map from Supabase result back to our schema
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      oldPrice: data.old_price,
+      categoryId: data.category_id,
+      stock: data.stock,
+      shortDescription: data.short_description,
+      longDescription: data.long_description,
+      images: data.images,
+      colors: data.colors,
+      sizes: data.sizes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get all products
   getAll: async (): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, categories(name)')
       .order('name');
     
     if (error) {
@@ -36,14 +65,31 @@ export const productModel = {
       throw error;
     }
     
-    return data || [];
+    // Map data from Supabase format to our schema
+    return (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      oldPrice: item.old_price,
+      categoryId: item.category_id,
+      stock: item.stock,
+      shortDescription: item.short_description,
+      longDescription: item.long_description,
+      images: item.images,
+      colors: item.colors,
+      sizes: item.sizes,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      // Add categoryName if available from the join
+      categoryName: item.categories?.name
+    }));
   },
   
   // Get a product by ID
   getById: async (id: string): Promise<Product | undefined> => {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, categories(name)')
       .eq('id', id)
       .single();
     
@@ -52,7 +98,24 @@ export const productModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      oldPrice: data.old_price,
+      categoryId: data.category_id,
+      stock: data.stock,
+      shortDescription: data.short_description,
+      longDescription: data.long_description,
+      images: data.images,
+      colors: data.colors,
+      sizes: data.sizes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      categoryName: data.categories?.name
+    };
   },
   
   // Get products by category
@@ -68,14 +131,42 @@ export const productModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      oldPrice: item.old_price,
+      categoryId: item.category_id,
+      stock: item.stock,
+      shortDescription: item.short_description,
+      longDescription: item.long_description,
+      images: item.images,
+      colors: item.colors,
+      sizes: item.sizes,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at
+    }));
   },
   
   // Update a product
   update: async (id: string, updates: Partial<Product>): Promise<Product | undefined> => {
+    // Map our schema to Supabase format
+    const supabaseUpdates: any = {};
+    
+    if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+    if (updates.price !== undefined) supabaseUpdates.price = updates.price;
+    if (updates.oldPrice !== undefined) supabaseUpdates.old_price = updates.oldPrice;
+    if (updates.categoryId !== undefined) supabaseUpdates.category_id = updates.categoryId;
+    if (updates.stock !== undefined) supabaseUpdates.stock = updates.stock;
+    if (updates.shortDescription !== undefined) supabaseUpdates.short_description = updates.shortDescription;
+    if (updates.longDescription !== undefined) supabaseUpdates.long_description = updates.longDescription;
+    if (updates.images !== undefined) supabaseUpdates.images = updates.images;
+    if (updates.colors !== undefined) supabaseUpdates.colors = updates.colors;
+    if (updates.sizes !== undefined) supabaseUpdates.sizes = updates.sizes;
+    
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(supabaseUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -85,7 +176,23 @@ export const productModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      oldPrice: data.old_price,
+      categoryId: data.category_id,
+      stock: data.stock,
+      shortDescription: data.short_description,
+      longDescription: data.long_description,
+      images: data.images,
+      colors: data.colors,
+      sizes: data.sizes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Delete a product
@@ -152,10 +259,26 @@ export const orderModel = {
     
     if (!product || product.stock < orderData.quantity) return null;
     
+    // Map from our schema to Supabase table format
+    const supabaseOrderData = {
+      product_id: orderData.productId,
+      customer_id: orderData.customerId,
+      customer_name: orderData.customerName,
+      customer_phone: orderData.customerPhone,
+      date: orderData.date,
+      status: orderData.status,
+      wilaya: orderData.wilaya,
+      commune: orderData.commune,
+      address: orderData.address,
+      quantity: orderData.quantity,
+      price: orderData.price,
+      notes: orderData.notes
+    };
+    
     // Create order
     const { data, error } = await supabase
       .from('orders')
-      .insert(orderData)
+      .insert(supabaseOrderData)
       .select()
       .single();
     
@@ -164,7 +287,24 @@ export const orderModel = {
       throw error;
     }
     
-    return data;
+    // Map from Supabase result back to our schema
+    return {
+      id: data.id,
+      productId: data.product_id,
+      customerId: data.customer_id,
+      customerName: data.customer_name,
+      customerPhone: data.customer_phone,
+      date: data.date,
+      status: data.status,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      quantity: data.quantity,
+      price: data.price,
+      notes: data.notes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get all orders
@@ -179,7 +319,29 @@ export const orderModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      productId: item.product_id,
+      customerId: item.customer_id,
+      customerName: item.customer_name,
+      customerPhone: item.customer_phone,
+      date: item.date,
+      status: item.status,
+      wilaya: item.wilaya,
+      commune: item.commune,
+      address: item.address,
+      quantity: item.quantity,
+      price: item.price,
+      notes: item.notes,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      // Add product details if needed
+      product: item.products ? {
+        id: item.products.id,
+        name: item.products.name,
+        // Map other product fields as needed
+      } : undefined
+    }));
   },
   
   // Get order by ID
@@ -195,7 +357,31 @@ export const orderModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      productId: data.product_id,
+      customerId: data.customer_id,
+      customerName: data.customer_name,
+      customerPhone: data.customer_phone,
+      date: data.date,
+      status: data.status,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      quantity: data.quantity,
+      price: data.price,
+      notes: data.notes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      // Add product details if needed
+      product: data.products ? {
+        id: data.products.id,
+        name: data.products.name,
+        // Map other product fields as needed
+      } : undefined
+    };
   },
   
   // Get orders by customer
@@ -211,7 +397,29 @@ export const orderModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      productId: item.product_id,
+      customerId: item.customer_id,
+      customerName: item.customer_name,
+      customerPhone: item.customer_phone,
+      date: item.date,
+      status: item.status,
+      wilaya: item.wilaya,
+      commune: item.commune,
+      address: item.address,
+      quantity: item.quantity,
+      price: item.price,
+      notes: item.notes,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      // Add product details if needed
+      product: item.products ? {
+        id: item.products.id,
+        name: item.products.name,
+        // Map other product fields as needed
+      } : undefined
+    }));
   },
   
   // Get orders by status
@@ -227,7 +435,29 @@ export const orderModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      productId: item.product_id,
+      customerId: item.customer_id,
+      customerName: item.customer_name,
+      customerPhone: item.customer_phone,
+      date: item.date,
+      status: item.status,
+      wilaya: item.wilaya,
+      commune: item.commune,
+      address: item.address,
+      quantity: item.quantity,
+      price: item.price,
+      notes: item.notes,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      // Add product details if needed
+      product: item.products ? {
+        id: item.products.id,
+        name: item.products.name,
+        // Map other product fields as needed
+      } : undefined
+    }));
   },
   
   // Update order status
@@ -247,7 +477,31 @@ export const orderModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      productId: data.product_id,
+      customerId: data.customer_id,
+      customerName: data.customer_name,
+      customerPhone: data.customer_phone,
+      date: data.date,
+      status: data.status,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      quantity: data.quantity,
+      price: data.price,
+      notes: data.notes,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      // Add product details if needed
+      product: data.products ? {
+        id: data.products.id,
+        name: data.products.name,
+        // Map other product fields as needed
+      } : undefined
+    };
   },
   
   // Cancel an order
@@ -270,6 +524,15 @@ export const orderModel = {
 export const customerModel = {
   // Create a new customer
   create: async (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> => {
+    // Map to Supabase format
+    const supabaseCustomerData = {
+      name: customerData.name,
+      phone_number: customerData.phoneNumber,
+      wilaya: customerData.wilaya,
+      commune: customerData.commune,
+      address: customerData.address
+    };
+    
     // Check if customer already exists with the same phone number
     const { data: existingCustomer, error: existingError } = await supabase
       .from('customers')
@@ -277,15 +540,24 @@ export const customerModel = {
       .eq('phone_number', customerData.phoneNumber)
       .maybeSingle();
     
-    // If customer exists, return it
+    // If customer exists, return it mapped to our schema
     if (existingCustomer) {
-      return existingCustomer;
+      return {
+        id: existingCustomer.id,
+        name: existingCustomer.name,
+        phoneNumber: existingCustomer.phone_number,
+        wilaya: existingCustomer.wilaya,
+        commune: existingCustomer.commune,
+        address: existingCustomer.address,
+        createdAt: existingCustomer.created_at,
+        updatedAt: existingCustomer.updated_at
+      };
     }
     
     // Otherwise, create new customer
     const { data, error } = await supabase
       .from('customers')
-      .insert(customerData)
+      .insert(supabaseCustomerData)
       .select()
       .single();
     
@@ -294,7 +566,17 @@ export const customerModel = {
       throw error;
     }
     
-    return data;
+    // Map result back to our schema
+    return {
+      id: data.id,
+      name: data.name,
+      phoneNumber: data.phone_number,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get all customers
@@ -309,7 +591,16 @@ export const customerModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      phoneNumber: item.phone_number,
+      wilaya: item.wilaya,
+      commune: item.commune,
+      address: item.address,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at
+    }));
   },
   
   // Get customer by ID
@@ -325,7 +616,18 @@ export const customerModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      phoneNumber: data.phone_number,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get customer by phone number
@@ -341,14 +643,34 @@ export const customerModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      phoneNumber: data.phone_number,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Update customer information
   update: async (id: string, updates: Partial<Customer>): Promise<Customer | undefined> => {
+    // Map our schema to Supabase format
+    const supabaseUpdates: any = {};
+    
+    if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+    if (updates.phoneNumber !== undefined) supabaseUpdates.phone_number = updates.phoneNumber;
+    if (updates.wilaya !== undefined) supabaseUpdates.wilaya = updates.wilaya;
+    if (updates.commune !== undefined) supabaseUpdates.commune = updates.commune;
+    if (updates.address !== undefined) supabaseUpdates.address = updates.address;
+    
     const { data, error } = await supabase
       .from('customers')
-      .update(updates)
+      .update(supabaseUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -358,7 +680,18 @@ export const customerModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      phoneNumber: data.phone_number,
+      wilaya: data.wilaya,
+      commune: data.commune,
+      address: data.address,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get customer statistics
@@ -398,9 +731,14 @@ export const customerModel = {
 export const categoryModel = {
   // Create a new category
   create: async (categoryData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category> => {
+    const supabaseCategoryData = {
+      name: categoryData.name,
+      description: categoryData.description
+    };
+    
     const { data, error } = await supabase
       .from('categories')
-      .insert(categoryData)
+      .insert(supabaseCategoryData)
       .select()
       .single();
     
@@ -409,7 +747,13 @@ export const categoryModel = {
       throw error;
     }
     
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Get all categories
@@ -424,7 +768,13 @@ export const categoryModel = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at
+    }));
   },
   
   // Get category by ID
@@ -440,14 +790,27 @@ export const categoryModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Update category
   update: async (id: string, updates: Partial<Category>): Promise<Category | undefined> => {
+    const supabaseUpdates: any = {};
+    
+    if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+    if (updates.description !== undefined) supabaseUpdates.description = updates.description;
+    
     const { data, error } = await supabase
       .from('categories')
-      .update(updates)
+      .update(supabaseUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -457,7 +820,15 @@ export const categoryModel = {
       throw error;
     }
     
-    return data;
+    if (!data) return undefined;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   },
   
   // Delete category
