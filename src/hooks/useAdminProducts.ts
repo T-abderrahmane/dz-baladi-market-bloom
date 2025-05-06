@@ -68,9 +68,15 @@ export const useAdminProducts = () => {
 
   const saveProduct = async (productData: any) => {
     try {
+      // Update productData to handle the "none" value for categoryId
+      const dataToSave = {
+        ...productData,
+        categoryId: productData.categoryId === "none" ? null : productData.categoryId
+      };
+
       if (editingProduct) {
         // Update existing product
-        const updated = await productService.update(editingProduct.id, productData);
+        const updated = await productService.update(editingProduct.id, dataToSave);
         setProducts(products.map(p => p.id === updated.id ? updated : p));
         toast({ 
           title: "Success", 
@@ -78,7 +84,7 @@ export const useAdminProducts = () => {
         });
       } else {
         // Create new product
-        const created = await productService.create(productData);
+        const created = await productService.create(dataToSave);
         setProducts([...products, created]);
         toast({ 
           title: "Success", 
