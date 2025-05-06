@@ -69,7 +69,6 @@ export const useAdminOrders = () => {
       order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.wilaya?.toLowerCase().includes(searchTerm.toLowerCase());
-      // Since 'products' property doesn't exist on Order type, we'll remove that check
 
     // Status filter
     const matchesStatus = statusFilter === "All" || order.status === statusFilter;
@@ -79,7 +78,6 @@ export const useAdminOrders = () => {
 
   const handleExportData = () => {
     // Implementation for exporting order data
-    // In a real app, this would generate a CSV/Excel file
     alert("Export functionality would be implemented here");
   };
 

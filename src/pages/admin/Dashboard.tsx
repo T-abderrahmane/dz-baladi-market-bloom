@@ -1,13 +1,11 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CartesianGrid, XAxis, YAxis, Tooltip, Bar, ResponsiveContainer } from "recharts";
+import { CartesianGrid, XAxis, YAxis, Tooltip, Bar, ResponsiveContainer, BarChart } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import { Package, Users, ShoppingCart, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart } from "@/components/ui/chart";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
